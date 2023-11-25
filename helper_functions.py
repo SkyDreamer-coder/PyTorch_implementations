@@ -33,6 +33,8 @@ import zipfile
 from pathlib import Path
 # requests
 import requests
+# typing
+from typing import Tuple, Dict, List
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device
@@ -179,42 +181,49 @@ def make_predictions(model: torch.nn.Module,
   return torch.stack(pred_probs).argmax(dim=1)
 
 # plot predictions
-def plot_predictions(data: torchvision.datasets,
+def plot_predictions(test_data_samples: list,
+                     test_data_labels: list,
+                     classes: list,
                      pred_classes: torch.Tensor,
                      n_samples: int):
-  test_samples = []
-  test_labels = []
+  """
+  Provides to plotting prediction and true results.
+  Args: 'test_data_samples' -> list (test_data_samples),
+  'test_data_labels' -> list (test_data_labels),
+  'classes' -> must be x.classes: x => tochvision.datasets
+  'pred_classes' -> (toch.tensor) the prediction labels
+  'n_samples' -> sample number
 
-  for sample, label in random.sample(list(data), k=n_samples):
-    test_samples.append(sample)
-    test_labels.append(label)
+   """
+  try:
+    plt.figure(figsize=(n_samples,n_samples))
+    nrows = int(math.sqrt(n_samples))
+    ncols = int(math.ceil(n_samples / nrows))
 
-  plt.figure(figsize=(9,9))
-  nrows = int(math.sqrt(n_samples))
-  ncols = int(math.ceil(n_samples / nrows))
+    for index, sample in enumerate(test_data_samples):
+      # subplot
+      plt.subplot(nrows, ncols, index+1)
 
-  for index, sample in enumerate(test_samples):
-    # subplot
-    plt.subplot(nrows, ncols, index+1)
+      # plot target img
+      plt.imshow(sample.reshape(sample.shape[1],sample.shape[2]), cmap="gray")
 
-    # plot target img
-    plt.imshow(sample.squeeze(), cmap="gray")
+      # Find the prediction
+      pred_label = classes[pred_classes[index]]
 
-    # Find the prediction
-    pred_label = data.classes[pred_classes[index]]
+      # truth label
+      truth_label = classes[test_data_labels[index]]
 
-    # truth label
-    truth_label = data.classes[test_labels[index]]
+      # creating a title for the plot
+      title_text = f"pred: {pred_label} | truth: {truth_label}"
 
-    # creating a title for the plot
-    title_text = f"pred: {pred_label} | truth: {truth_label}"
-
-    # checking equality between truth and pred labels
-    if pred_label == truth_label:
-      plt.title(title_text, fontsize=10, c="g") # green colour will be showed if prediction is correct
-    else:
-      plt.title(title_text, fontsize=10, c="r") # red colour will be showed if prediction is not correct
-    plt.axis("off")
+      # checking equality between truth and pred labels
+      if pred_label == truth_label:
+        plt.title(title_text, fontsize=10, c="g") # green colour will be showed if prediction is correct
+      else:
+        plt.title(title_text, fontsize=10, c="r") # red colour will be showed if prediction is not correct
+      plt.axis("off")
+  except:
+    raise TypeError(f"incorrect value type")
 
 def walk_through_dir(dir_path):
     """
@@ -230,3 +239,17 @@ def walk_through_dir(dir_path):
     """
     for dirpath, dirnames, filenames in os.walk(dir_path):
         print(f"There are {len(dirnames)} directories and {len(filenames)} images in '{dirpath}'.")
+
+def class_from_dir(directory: str) -> Tuple[list[str], Dict[str, int]]:
+  """ Finds the class folder names in a target directory."""
+  try:
+    # getting class names by scanning the target directory
+    classes = sorted(entry.name for entry in os.scandir(directory) if entry.is_dir())
+
+    # getting class dictionary feature
+    class_to_idx =  {class_name: i for i, class_name in enumerate(classes)}
+
+    # return
+    return classes, class_to_idx
+  except:
+    raise FileNotFoundError(f"Couldn't find any classes in {directory}...")
