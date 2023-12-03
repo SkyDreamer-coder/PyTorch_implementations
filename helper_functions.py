@@ -253,3 +253,47 @@ def class_from_dir(directory: str) -> Tuple[list[str], Dict[str, int]]:
     return classes, class_to_idx
   except:
     raise FileNotFoundError(f"Couldn't find any classes in {directory}...")
+
+def display_random_imgs(dataset: torch.utils.data.Dataset,
+                       classes: List[str] = None,
+                       n_samples: int = 10,
+                       display_shape: bool = True,
+                       seed: int = None):
+  """ Selects random images from dataset and display them using matplotlib.
+  Args: 'dataset' -> torchçutils.data.Dataset,
+  'classes' -> dataset's target labels (List),
+  'n_samples' -> number of samples,
+  'display_shape' -> adjusts the shape feature whether display or not,
+  'seed' -> random seed.
+  """
+  try:
+    if n_samples > 10 or n_samples <= 0:
+      n_samples = 10
+      display_shape = False
+      print("incorrect n_samples format. Setting up again to 10 and deactivating 'display_shape'")
+
+    # setting up random seed
+    if seed:
+      random.seed(seed)
+
+    # getting random sample index
+    random_samples_index = random.sample(range(len(dataset)), k=n_samples)
+
+    # plotting
+    plt.figure(figsize=(35, 10))
+    for i, sample in enumerate(random_samples_index):
+      img, label = dataset[sample][0], dataset[sample][1]
+      img = img.permute(1,2,0) # from [ch, h, w] to [h, w, ch]
+
+      plt.subplot(1, n_samples, i+1)
+      plt.imshow(img)
+      plt.axis('off')
+      if classes:
+        title = f"class: {classes[label]}"
+        if display_shape:
+          title = title + f"\nshape: {img.shape}"
+      else:
+        title = f"random index: {sample}"
+      plt.title(title)
+  except:
+    raise TypeError(f"incorrect value type")
